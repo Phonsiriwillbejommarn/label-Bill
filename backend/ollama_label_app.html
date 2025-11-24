@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt Labeling AI - Glass UI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --accent-color: #00f2fe;
+      --accent-gradient: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0f172a;
+      background-image:
+        radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+        radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Glassmorphism Classes */
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      border-radius: 16px;
+    }
+
+    .glass-input {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--glass-border);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .glass-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.2);
+      outline: none;
+    }
+
+    .glass-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .glass-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      border: none;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+      background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .btn-primary:disabled,
+    .glass-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Animations */
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 5px rgba(0, 242, 254, 0.2);
+      }
+
+      50% {
+        box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+      }
+    }
+
+    .animate-glow {
+      animation: pulse-glow 2s infinite;
+    }
+
+    /* Image Viewer */
+    .image-viewer {
+      background-image:
+        linear-gradient(45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e293b 75%),
+        linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+  </style>
+</head>
+
+<body class="h-screen flex flex-col p-4 gap-4">
+
+  <!-- Header -->
+  <header class="glass-panel p-4 flex justify-between items-center shrink-0 z-10">
+    <div class="flex items-center gap-3">
+      <div
+        class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-300 flex items-center justify-center text-slate-900 font-bold text-xl">
+        AI</div>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-wide">Receipt Labeling Tool</h1>
+        <p class="text-xs text-slate-400">Powered by Ollama & Typhoon</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="flex flex-col">
+        <label class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">AI Model</label>
+        <select id="modelSelect" class="glass-input rounded-lg px-3 py-1.5 text-sm min-w-[200px] bg-slate-800">
+          <option value="typhoon-hf">⚡ Typhoon OCR (FastAPI)</option>
+          <option value="scb10x/typhoon-ocr1.5-3b">🦙 Ollama: Typhoon-OCR-3B</option>
+          <option value="qwen2.5-vl">🦙 Ollama: Qwen2.5-VL</option>
+          <option value="llama3.2-vision">🦙 Ollama: Llama 3.2 Vision</option>
+        </select>
+      </div>
+
+      <div class="h-8 w-[1px] bg-white/10"></div>
+
+      <button id="selectFolderBtn" class="glass-btn px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+        Open Images
+      </button>
+      <input type="file" id="imageUpload" multiple accept="image/*" class="hidden">
+
+      <button id="processBtn" class="btn-primary px-6 py-2 rounded-lg text-sm flex items-center gap-2 transition-all"
+        disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        Auto Label
+      </button>
+
+      <button id="exportBtn" class="glass-btn px-4 py-2 rounded-lg text-sm flex items-center gap-2" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex gap-4 min-h-0">
+
+    <!-- Left: Image Viewer -->
+    <section class="glass-panel flex-1 flex flex-col relative overflow-hidden group">
+      <div
+        class="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-medium text-white border border-white/10">
+        <span id="imageCounter">0 / 0</span>
+      </div>
+
+      <div class="flex-1 image-viewer relative flex items-center justify-center overflow-hidden" id="imageContainer">
+        <div class="text-center text-slate-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 opacity-50" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p>No images loaded</p>
+        </div>
+      </div>
+
+      <!-- Image Controls -->
+      <div
+        class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button id="zoomOutBtn" class="glass-btn p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+          </svg></button>
+        <button id="zoomInBtn" class="glass-btn p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+              clip-rule="evenodd" />
+          </svg></button>
+      </div>
+
+      <!-- Navigation -->
+      <button id="prevBtn"
+        class="absolute left-4 top-1/2 transform -translate-y-1/2 glass-btn p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button id="nextBtn"
+        class="absolute right-4 top-1/2 transform -translate-y-1/2 glass-btn p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </section>
+
+    <!-- Right: Editor -->
+    <section class="glass-panel w-[450px] flex flex-col min-h-0">
+      <div class="p-4 border-b border-white/10 flex justify-between items-center">
+        <h2 class="font-semibold text-white">Receipt Data</h2>
+        <span id="statusBadge"
+          class="px-2 py-1 rounded-full text-xs font-medium bg-slate-700 text-slate-300 border border-slate-600">Unlabeled</span>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4" id="editorContent">
+        <!-- Merchant Info -->
+        <div class="space-y-3">
+          <h3 class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Merchant Info</h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Merchant Name</label>
+              <input type="text" id="merchantName" class="glass-input w-full rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. 7-Eleven">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Date</label>
+                <input type="date" id="date" class="glass-input w-full rounded-lg px-3 py-2 text-sm">
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Receipt ID</label>
+                <input type="text" id="receiptId" class="glass-input w-full rounded-lg px-3 py-2 text-sm"
+                  placeholder="#12345">
+              </div>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Tax ID</label>
+              <input type="text" id="taxId" class="glass-input w-full rounded-lg px-3 py-2 text-sm"
+                placeholder="Tax ID">
+            </div>
+          </div>
+        </div>
+
+        <div class="h-[1px] bg-white/10"></div>
+
+        <!-- Items -->
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Items</h3>
+            <button id="addItemBtn" class="text-xs text-cyan-400 hover:text-cyan-300 font-medium">+ Add Item</button>
+          </div>
+          <div id="itemsContainer" class="space-y-2">
+            <!-- Items will be injected here -->
+          </div>
+        </div>
+
+        <div class="h-[1px] bg-white/10"></div>
+
+        <!-- Totals -->
+        <div class="space-y-3">
+          <h3 class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Totals</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Subtotal</label>
+              <input type="number" step="0.01" id="subtotal"
+                class="glass-input w-full rounded-lg px-3 py-2 text-sm text-right">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Discount</label>
+              <input type="number" step="0.01" id="discount"
+                class="glass-input w-full rounded-lg px-3 py-2 text-sm text-right text-red-400">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Tax</label>
+              <input type="number" step="0.01" id="tax"
+                class="glass-input w-full rounded-lg px-3 py-2 text-sm text-right">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Total</label>
+              <input type="number" step="0.01" id="total"
+                class="glass-input w-full rounded-lg px-3 py-2 text-sm text-right font-bold text-cyan-400">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="p-4 border-t border-white/10 flex gap-3">
+        <button id="skipBtn"
+          class="glass-btn flex-1 py-2 rounded-lg text-sm font-medium hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-200">Skip</button>
+        <button id="saveBtn"
+          class="btn-primary flex-[2] py-2 rounded-lg text-sm font-medium shadow-lg shadow-cyan-500/20">Save &
+          Next</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer Stats -->
+  <footer class="glass-panel p-3 flex justify-between items-center text-xs text-slate-400">
+    <div class="flex gap-6">
+      <span>Total: <strong class="text-white" id="totalStat">0</strong></span>
+      <span>Labeled: <strong class="text-cyan-400" id="labeledStat">0</strong></span>
+      <span>Skipped: <strong class="text-red-400" id="skippedStat">0</strong></span>
+    </div>
+    <div class="flex items-center gap-3 w-1/3">
+      <span>Progress</span>
+      <div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div id="progressFill"
+          class="h-full bg-gradient-to-r from-blue-400 to-cyan-400 w-0 transition-all duration-500"></div>
+      </div>
+      <span id="progressText">0%</span>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed top-4 right-4 transform translate-x-full transition-transform duration-300 z-50">
+    <div class="glass-panel px-4 py-3 flex items-center gap-3 border-l-4 border-cyan-400">
+      <span id="toastIcon">✓</span>
+      <span id="toastMessage" class="text-sm font-medium text-white">Notification</span>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // State
+    let annotations = [];
+    let currentIndex = 0;
+    let zoomLevel = 1;
+    let isProcessing = false;
+
+    // Elements
+    const els = {
+      modelSelect: document.getElementById('modelSelect'),
+      selectFolderBtn: document.getElementById('selectFolderBtn'),
+      imageUpload: document.getElementById('imageUpload'),
+      processBtn: document.getElementById('processBtn'),
+      exportBtn: document.getElementById('exportBtn'),
+      imageContainer: document.getElementById('imageContainer'),
+      imageCounter: document.getElementById('imageCounter'),
+      prevBtn: document.getElementById('prevBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      zoomInBtn: document.getElementById('zoomInBtn'),
+      zoomOutBtn: document.getElementById('zoomOutBtn'),
+
+      // Form
+      merchantName: document.getElementById('merchantName'),
+      date: document.getElementById('date'),
+      receiptId: document.getElementById('receiptId'),
+      taxId: document.getElementById('taxId'),
+      itemsContainer: document.getElementById('itemsContainer'),
+      addItemBtn: document.getElementById('addItemBtn'),
+      subtotal: document.getElementById('subtotal'),
+      discount: document.getElementById('discount'),
+      tax: document.getElementById('tax'),
+      total: document.getElementById('total'),
+
+      // Actions
+      saveBtn: document.getElementById('saveBtn'),
+      skipBtn: document.getElementById('skipBtn'),
+
+      // Stats
+      totalStat: document.getElementById('totalStat'),
+      labeledStat: document.getElementById('labeledStat'),
+      skippedStat: document.getElementById('skippedStat'),
+      progressFill: document.getElementById('progressFill'),
+      progressText: document.getElementById('progressText'),
+      statusBadge: document.getElementById('statusBadge'),
+
+      // Toast
+      toast: document.getElementById('toast'),
+      toastMessage: document.getElementById('toastMessage'),
+      toastIcon: document.getElementById('toastIcon')
+    };
+
+    // --- Event Listeners ---
+
+    els.selectFolderBtn.addEventListener('click', () => els.imageUpload.click());
+
+    els.imageUpload.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+      if (files.length === 0) return;
+
+      annotations = [];
+      let loaded = 0;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          annotations.push({
+            image_path: ev.target.result,
+            image_name: file.name,
+            annotation_data: {},
+            status: 'unlabeled',
+            timestamp: null
+          });
+          loaded++;
+          if (loaded === files.length) {
+            currentIndex = 0;
+            loadCurrentImage();
+            updateStats();
+            els.processBtn.disabled = false;
+            els.exportBtn.disabled = false;
+            showToast(`Loaded ${files.length} images`, 'success');
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = null;
+    });
+
+    els.prevBtn.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        saveCurrentData();
+        currentIndex--;
+        loadCurrentImage();
+      }
+    });
+
+    els.nextBtn.addEventListener('click', () => {
+      if (currentIndex < annotations.length - 1) {
+        saveCurrentData();
+        currentIndex++;
+        loadCurrentImage();
+      }
+    });
+
+    els.saveBtn.addEventListener('click', () => {
+      saveCurrentData();
+      showToast('Saved', 'success');
+      if (currentIndex < annotations.length - 1) {
+        currentIndex++;
+        loadCurrentImage();
+      }
+    });
+
+    els.skipBtn.addEventListener('click', () => {
+      if (annotations[currentIndex]) {
+        annotations[currentIndex].status = 'skipped';
+        updateStats();
+        showToast('Skipped', 'warning');
+        if (currentIndex < annotations.length - 1) {
+          currentIndex++;
+          loadCurrentImage();
+        }
+      }
+    });
+
+    els.addItemBtn.addEventListener('click', () => addItemRow());
+
+    els.zoomInBtn.addEventListener('click', () => {
+      zoomLevel = Math.min(zoomLevel + 0.2, 3);
+      updateZoom();
+    });
+
+    els.zoomOutBtn.addEventListener('click', () => {
+      zoomLevel = Math.max(zoomLevel - 0.2, 0.5);
+      updateZoom();
+    });
+
+    els.processBtn.addEventListener('click', async () => {
+      if (isProcessing) return;
+      isProcessing = true;
+      els.processBtn.disabled = true;
+      els.processBtn.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...`;
+
+      const model = els.modelSelect.value;
+
+      for (let i = 0; i < annotations.length; i++) {
+        if (annotations[i].status === 'labeled') continue; // Skip already labeled
+
+        try {
+          let data;
+          if (model === 'typhoon-hf') {
+            data = await processWithTyphoon(annotations[i]);
+          } else {
+            data = await processWithOllama(annotations[i], model);
+          }
+
+          if (data) {
+            annotations[i].annotation_data = { ...annotations[i].annotation_data, ...data };
+            annotations[i].status = 'labeled';
+          }
+        } catch (err) {
+          console.error(err);
+        }
+        updateStats();
+      }
+
+      isProcessing = false;
+      els.processBtn.disabled = false;
+      els.processBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Auto Label`;
+      loadCurrentImage();
+      showToast('Processing Complete', 'success');
+    });
+
+    els.exportBtn.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(annotations, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "receipt_labels.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    });
+
+    // --- Functions ---
+
+    function loadCurrentImage() {
+      if (!annotations.length) return;
+
+      const ann = annotations[currentIndex];
+      els.imageContainer.innerHTML = `<img src="${ann.image_path}" class="max-h-full max-w-full object-contain transition-transform duration-200" style="transform: scale(${zoomLevel})" id="currentImage">`;
+      els.imageCounter.textContent = `${currentIndex + 1} / ${annotations.length}`;
+
+      // Status Badge
+      const statusColors = {
+        'unlabeled': 'bg-slate-700 text-slate-300 border-slate-600',
+        'labeled': 'bg-green-900/50 text-green-300 border-green-700',
+        'skipped': 'bg-red-900/50 text-red-300 border-red-700'
+      };
+      els.statusBadge.className = `px-2 py-1 rounded-full text-xs font-medium border ${statusColors[ann.status]}`;
+      els.statusBadge.textContent = ann.status.charAt(0).toUpperCase() + ann.status.slice(1);
+
+      // Populate Form
+      const data = ann.annotation_data || {};
+      els.merchantName.value = data.merchant_name || '';
+      els.date.value = data.date || '';
+      els.receiptId.value = data.receipt_id || '';
+      els.taxId.value = data.tax_id || '';
+      els.subtotal.value = data.subtotal || '';
+      els.discount.value = data.discount || '';
+      els.tax.value = data.tax || '';
+      els.total.value = data.total || '';
+
+      els.itemsContainer.innerHTML = '';
+      const items = data.items || [];
+      if (items.length === 0) addItemRow();
+      items.forEach(item => addItemRow(item.name, item.quantity, item.price));
+
+      els.prevBtn.disabled = currentIndex === 0;
+      els.nextBtn.disabled = currentIndex === annotations.length - 1;
+    }
+
+    function addItemRow(name = '', qty = 1, price = '') {
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-center animate-fade-in';
+      div.innerHTML = `
+                <input type="text" class="glass-input w-full rounded-lg px-2 py-1.5 text-xs item-name" placeholder="Item" value="${name}">
+                <input type="number" class="glass-input w-full rounded-lg px-2 py-1.5 text-xs item-qty" placeholder="Qty" value="${qty}">
+                <input type="number" class="glass-input w-full rounded-lg px-2 py-1.5 text-xs item-price" placeholder="Price" value="${price}">
+                <button class="text-slate-500 hover:text-red-400" onclick="this.parentElement.remove()">×</button>
+            `;
+      els.itemsContainer.appendChild(div);
+    }
+
+    function saveCurrentData() {
+      if (!annotations[currentIndex]) return;
+
+      const items = [];
+      document.querySelectorAll('#itemsContainer > div').forEach(row => {
+        items.push({
+          name: row.querySelector('.item-name').value,
+          quantity: parseFloat(row.querySelector('.item-qty').value) || 1,
+          price: parseFloat(row.querySelector('.item-price').value) || 0
+        });
+      });
+
+      annotations[currentIndex].annotation_data = {
+        merchant_name: els.merchantName.value,
+        date: els.date.value,
+        receipt_id: els.receiptId.value,
+        tax_id: els.taxId.value,
+        items: items,
+        subtotal: parseFloat(els.subtotal.value) || 0,
+        discount: parseFloat(els.discount.value) || 0,
+        tax: parseFloat(els.tax.value) || 0,
+        total: parseFloat(els.total.value) || 0
+      };
+
+      if (annotations[currentIndex].status !== 'skipped') {
+        annotations[currentIndex].status = 'labeled';
+      }
+      updateStats();
+    }
+
+    function updateStats() {
+      const total = annotations.length;
+      const labeled = annotations.filter(a => a.status === 'labeled').length;
+      const skipped = annotations.filter(a => a.status === 'skipped').length;
+
+      els.totalStat.textContent = total;
+      els.labeledStat.textContent = labeled;
+      els.skippedStat.textContent = skipped;
+
+      const pct = total ? Math.round(((labeled + skipped) / total) * 100) : 0;
+      els.progressFill.style.width = `${pct}%`;
+      els.progressText.textContent = `${pct}%`;
+    }
+
+    function updateZoom() {
+      const img = document.getElementById('currentImage');
+      if (img) img.style.transform = `scale(${zoomLevel})`;
+    }
+
+    function showToast(msg, type = 'success') {
+      els.toastMessage.textContent = msg;
+      els.toastIcon.textContent = type === 'success' ? '✓' : '⚠';
+      els.toast.classList.remove('translate-x-full');
+      setTimeout(() => els.toast.classList.add('translate-x-full'), 3000);
+    }
+
+    // --- API Integration ---
+
+    async function processWithTyphoon(annotation) {
+      const base64 = annotation.image_path.split(',')[1];
+      const res = await fetch('http://localhost:5001/api/process-typhoon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 })
+      });
+      const json = await res.json();
+      return json.data;
+    }
+
+    async function processWithOllama(annotation, model) {
+      const base64 = annotation.image_path.split(',')[1];
+      const prompt = `Extract receipt data as JSON: { "merchant_name": string, "date": string, "receipt_id": string, "items": [{ "name": string, "quantity": number, "price": number }], "total": number, "tax": number }`;
+
+      const res = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: model,
+          prompt: prompt,
+          images: [base64],
+          stream: false,
+          format: "json"
+        })
+      });
+      const json = await res.json();
+      return JSON.parse(json.response);
+    }
+
+  </script>
+</body>
+
+</html>
